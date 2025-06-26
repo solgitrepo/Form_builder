@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}{{ form.title }} - Form Builder{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="card-title">{{ form.title }}</h1>
+                {% if form.description %}
+                    <p class="card-text text-muted">{{ form.description }}</p>
+                {% endif %}
+                
+                <form id="responseForm">
+                    <input type="hidden" id="formId" value="{{ form.id }}">
+                    
+                    {% for question in questions %}
+                    <div class="mb-4 question-container" id="question_{{ question.id }}" data-question-id="{{ question.id }}">
+                        <label class="form-label fw-bold">
+                            {{ question.text }}
+                            {% if question.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        
+                        {% if question.type == 'text' %}
+                            <input type="text" class="form-control question-input" name="question_{{ question.id }}" {% if question.required %}required{% endif %}>
+                        
+                        {% elif question.type == 'textarea' %}
+                            <textarea class="form-control question-input" name="question_{{ question.id }}" rows="4" {% if question.required %}required{% endif %}></textarea>
+                        
+                        {% elif question.type == 'number' %}
+                            <input type="number" class="form-control question-input" name="question_{{ question.id }}" {% if question.required %}required{% endif %}>
+                        
+                        {% elif question.type == 'email' %}
+                            <input type="email" class="form-control question-input" name="question_{{ question.id }}" {% if question.required %}required{% endif %}>
+                        
+                        {% elif question.type == 'date' %}
+                            <input type="date" class="form-control question-input" name="question_{{ question.id }}" {% if question.required %}required{% endif %}>
+                        
+                        {% elif question.type == 'radio' %}
+                            {% for option in question.options %}
+                            <div class="form-check">
+                                <input class="form-check-input question-input" type="radio" name="question_{{ question.id }}" value="{{ option }}" id="q{{ question.id }}_{{ loop.index }}" {% if question.required %}required{% endif %}>
+                                <label class="form-check-label" for="q{{ question.id }}_{{ loop.index }}">{{ option }}</label>
+                            </div>
+                            {% endfor %}
+                        
+                        {% elif question.type == 'checkbox' %}
+                            {% for option in question.options %}
+                            <div class="form-check">
+                                <input class="form-check-input question-input" type="checkbox" name="question_{{ question.id }}" value="{{ option }}" id="q{{ question.id }}_{{ loop.index }}">
+                                <label class="form-check-label" for="q{{ question.id }}_{{ loop.index }}">{{ option }}</label>
+                            </div>
+                            {% endfor %}
+                        
+                        {% elif question.type == 'dropdown' %}
+                            <select class="form-select question-input" name="question_{{ question.id }}" {% if question.required %}required{% endif %}>
+                                <option value="">Choose an option...</option>
+                                {% for option in question.options %}
+                                <option value="{{ option }}">{{ option }}</option>
+                                {% endfor %}
+                            </select>
+                        
+                        {% elif question.type == 'star' %}
+                            <div class="star-rating">
+                                {% for i in range(1, 6) %}
+                                <input type="radio" name="question_{{ question.id }}" value="{{ i }}" id="star{{ question.id }}_{{ i }}" {% if question.required %}required{% endif %}>
+                                <label for="star{{ question.id }}_{{ i }}">★</label>
+                                {% endfor %}
+                            </div>
+                        
+                        {% elif question.type == 'scale' %}
+                            <div class="scale-rating">
+                                <span>1</span>
+                                {% for i in range(1, 11) %}
+                                <input type="radio" name="question_{{ question.id }}" value="{{ i }}" id="scale{{ question.id }}_{{ i }}" {% if question.required %}required{% endif %}>
+                                <label for="scale{{ question.id }}_{{ i }}">{{ i }}</label>
+                                {% endfor %}
+                                <span>10</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Submit Response</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Forms</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const questions = {{ questions | tojson }};
+const questionElements = document.querySelectorAll('.question-container');
+
+// Skip logic implementation
+function checkSkipLogic(questionId, answer) {
+    const question = questions.find(q => q.id == questionId);
+    if (!question.skipLogic || !question.skipLogic.condition) {
+        return;
+    }
+    
+    const condition = question.skipLogic.condition.toLowerCase();
+    const answerLower = String(answer).toLowerCase();
+    const targetId = question.skipLogic.target;
+    
+    // First, show all questions
+    questionElements.forEach(el => {
+        el.classList.remove('hidden');
+    });
+    
+    // Then apply skip logic if condition is met
+    if (answerLower.includes(condition) || answerLower === condition) {
+        if (question.skipLogic.action === 'end') {
+            // Hide all subsequent questions
+            let found = false;
+            questionElements.forEach(el => {
+                if (found) {
+                    el.classList.add('hidden');
+                }
+                if (el.dataset.questionId == questionId) {
+                    found = true;
+                }
+            });
+        } else if (targetId) {
+            // Hide questions between current and target
+            let found = false;
+            let targetFound = false;
+            questionElements.forEach(el => {
+                if (found && !targetFound) {
+                    el.classList.add('hidden');
+                }
+                if (el.dataset.questionId == questionId) {
+                    found = true;
+                }
+                if (el.dataset.questionId == targetId) {
+                    targetFound = true;
+                }
+            });
+        }
+    }
+}
+
+// Add event listeners for skip logic
+document.querySelectorAll('.question-input').forEach(input => {
+    input.addEventListener('change', function() {
+        const questionContainer = this.closest('.question-container');
+        const questionId = questionContainer.dataset.questionId;
+        
+        let answer = '';
+        if (this.type === 'checkbox') {
+            const checked = questionContainer.querySelectorAll('input[type="checkbox"]:checked');
+            answer = Array.from(checked).map(cb => cb.value).join(', ');
+        } else if (this.type === 'radio') {
+            const checked = questionContainer.querySelector('input[type="radio"]:checked');
+            answer = checked ? checked.value : '';
+        } else {
+            answer = this.value;
+        }
+        
+        checkSkipLogic(questionId, answer);
+    });
+});
+
+// Form submission
+document.getElementById('responseForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formId = document.getElementById('formId').value;
+    const responses = {};
+    let hasError = false;
+    
+    // Remove any previous error states
+    document.querySelectorAll('.is-invalid').forEach(el => {
+        el.classList.remove('is-invalid');
+    });
+    
+    // Collect all responses
+    questionElements.forEach(container => {
+        const questionId = container.dataset.questionId;
+        const question = questions.find(q => q.id == questionId);
+        const inputs = container.querySelectorAll('.question-input');
+        
+        // Skip validation for hidden questions
+        if (container.classList.contains('hidden')) {
+            return;
+        }
+        
+        // Check required fields
+        if (question.required) {
+            let hasValue = false;
+            
+            if (inputs[0].type === 'checkbox') {
+                const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+                hasValue = checked.length > 0;
+            } else if (inputs[0].type === 'radio') {
+                const checked = container.querySelector('input[type="radio"]:checked');
+                hasValue = !!checked;
+            } else {
+                hasValue = inputs[0].value.trim() !== '';
+            }
+            
+            if (!hasValue) {
+                hasError = true;
+                container.classList.add('is-invalid');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'invalid-feedback';
+                errorDiv.textContent = 'This field is required';
+                container.appendChild(errorDiv);
+                return;
+            }
+        }
+        
+        // Collect response value
+        if (inputs[0].type === 'checkbox') {
+            const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+            if (checked.length > 0) {
+                responses[questionId] = Array.from(checked).map(cb => cb.value);
+            }
+        } else if (inputs[0].type === 'radio') {
+            const checked = container.querySelector('input[type="radio"]:checked');
+            if (checked) {
+                responses[questionId] = checked.value;
+            }
+        } else {
+            const input = inputs[0];
+            if (input.value.trim()) {
+                responses[questionId] = input.value;
+            }
+        }
+    });
+    
+    if (hasError) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Disable submit button to prevent double submission
+    const submitButton = this.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+    
+    try {
+        console.log('Submitting form:', {
+            form_id: formId,
+            responses: responses,
+            session_id: Date.now().toString()
+        });
+        
+        const response = await fetch('/submit_response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                form_id: formId,
+                responses: responses,
+                session_id: Date.now().toString()
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Server response:', result);
+        
+        if (result.success) {
+            alert('Response submitted successfully!');
+            window.location.href = '/';
+        } else {
+            alert('Error submitting response: ' + (result.error || 'Unknown error'));
+            submitButton.disabled = false;
+            submitButton.innerHTML = 'Submit Response';
+        }
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        alert('Error submitting response: ' + error.message);
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Submit Response';
+    }
+});
+
+// Star rating functionality
+document.querySelectorAll('.star-rating').forEach(rating => {
+    const stars = rating.querySelectorAll('label');
+    const inputs = rating.querySelectorAll('input');
+    
+    stars.forEach((star, index) => {
+        star.addEventListener('mouseover', () => {
+            stars.forEach((s, i) => {
+                s.style.color = i <= index ? '#ffc107' : '#ddd';
+            });
+        });
+        
+        star.addEventListener('mouseout', () => {
+            const checked = rating.querySelector('input:checked');
+            const checkedIndex = checked ? Array.from(inputs).indexOf(checked) : -1;
+            
+            stars.forEach((s, i) => {
+                s.style.color = i <= checkedIndex ? '#ffc107' : '#ddd';
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

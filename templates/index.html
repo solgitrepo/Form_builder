@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Form Builder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Forms</h1>
+            <a href="{{ url_for('create_form') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Form
+            </a>
+        </div>
+        
+        {% if forms %}
+            <div class="row">
+                {% for form in forms %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ form.title }}</h5>
+                            <p class="card-text text-muted">{{ form.description or 'No description' }}</p>
+                            <p class="card-text">
+                                <small class="text-muted">Created: {{ form.created_at }}</small>
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="btn-group">
+                                    <a href="{{ url_for('view_form', form_id=form.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <a href="{{ url_for('view_results', form_id=form.id) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-chart-bar"></i> Results
+                                    </a>
+                                </div>
+                                <button onclick="confirmDelete({{ form.id }}, '{{ form.title }}')" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-5x text-muted mb-3"></i>
+                <h3>No forms yet</h3>
+                <p class="text-muted">Create your first form to get started!</p>
+                <a href="{{ url_for('create_form') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Form
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the form "<span id="formTitle"></span>"?</p>
+                <p class="text-danger">This action cannot be undone. All questions and responses will be permanently deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let formToDelete = null;
+const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+function confirmDelete(formId, formTitle) {
+    formToDelete = formId;
+    document.getElementById('formTitle').textContent = formTitle;
+    deleteModal.show();
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    if (!formToDelete) return;
+    
+    try {
+        const response = await fetch(`/delete_form/${formToDelete}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert('Error deleting form: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error deleting form: ' + error.message);
+    } finally {
+        deleteModal.hide();
+        formToDelete = null;
+    }
+});
+</script>
+{% endblock %}

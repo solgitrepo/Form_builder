@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Create Form - Form Builder{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Create New Form</h1>
+        
+        <form id="formBuilder">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Form Details</h5>
+                    <div class="mb-3">
+                        <label for="formTitle" class="form-label">Form Title *</label>
+                        <input type="text" class="form-control" id="formTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="formDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="formDescription" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title">Questions</h5>
+                        <button type="button" class="btn btn-success" onclick="addQuestion()">
+                            <i class="fas fa-plus"></i> Add Question
+                        </button>
+                    </div>
+                    <div id="questionsContainer"></div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Form
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let questionCount = 0;
+let questions = [];
+
+const questionTypes = {
+    'text': 'Text Input',
+    'textarea': 'Long Text',
+    'radio': 'Single Choice',
+    'checkbox': 'Multiple Choice',
+    'dropdown': 'Dropdown',
+    'star': 'Star Rating',
+    'scale': 'Scale (1-10)',
+    'number': 'Number',
+    'email': 'Email',
+    'date': 'Date'
+};
+
+function addQuestion() {
+    questionCount++;
+    const questionId = `question_${questionCount}`;
+    
+    const questionHtml = `
+        <div class="question-builder" id="${questionId}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6>Question ${questionCount}</h6>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeQuestion('${questionId}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label class="form-label">Question Text *</label>
+                        <input type="text" class="form-control question-text" required>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">Question Type</label>
+                        <select class="form-select question-type" onchange="updateQuestionOptions('${questionId}')">
+                            ${Object.entries(questionTypes).map(([value, label]) => 
+                                `<option value="${value}">${label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="options-container mb-3" style="display: none;">
+                <label class="form-label">Options (one per line)</label>
+                <textarea class="form-control question-options" rows="4" placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input question-required" type="checkbox">
+                        <label class="form-check-label">Required</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="skip-logic-section">
+                <h6>Skip Logic</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">If answer is:</label>
+                        <input type="text" class="form-control skip-condition" placeholder="e.g., Yes, Option 1">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Then skip to:</label>
+                        <select class="form-select skip-target">
+                            <option value="">No skip</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Action:</label>
+                        <select class="form-select skip-action">
+                            <option value="skip">Skip to question</option>
+                            <option value="end">End form</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('questionsContainer').insertAdjacentHTML('beforeend', questionHtml);
+    updateSkipTargets();
+}
+
+function removeQuestion(questionId) {
+    document.getElementById(questionId).remove();
+    updateSkipTargets();
+}
+
+function updateQuestionOptions(questionId) {
+    const questionDiv = document.getElementById(questionId);
+    const typeSelect = questionDiv.querySelector('.question-type');
+    const optionsContainer = questionDiv.querySelector('.options-container');
+    
+    const needsOptions = ['radio', 'checkbox', 'dropdown'].includes(typeSelect.value);
+    optionsContainer.style.display = needsOptions ? 'block' : 'none';
+}
+
+function updateSkipTargets() {
+    const allQuestions = document.querySelectorAll('.question-builder');
+    
+    allQuestions.forEach((question, index) => {
+        const skipTarget = question.querySelector('.skip-target');
+        const currentOptions = skipTarget.innerHTML;
+        
+        skipTarget.innerHTML = '<option value="">No skip</option>';
+        
+        allQuestions.forEach((targetQuestion, targetIndex) => {
+            if (targetIndex > index) {
+                const questionText = targetQuestion.querySelector('.question-text').value || `Question ${targetIndex + 1}`;
+                const questionId = targetQuestion.id;
+                skipTarget.innerHTML += `<option value="${questionId}">Question ${targetIndex + 1}: ${questionText.substring(0, 30)}...</option>`;
+            }
+        });
+    });
+}
+
+document.getElementById('formBuilder').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const title = document.getElementById('formTitle').value;
+    const description = document.getElementById('formDescription').value;
+    
+    const questions = [];
+    document.querySelectorAll('.question-builder').forEach(questionDiv => {
+        const questionData = {
+            text: questionDiv.querySelector('.question-text').value,
+            type: questionDiv.querySelector('.question-type').value,
+            required: questionDiv.querySelector('.question-required').checked,
+            options: [],
+            skipLogic: {}
+        };
+        
+        // Get options if needed
+        const optionsTextarea = questionDiv.querySelector('.question-options');
+        if (optionsTextarea && optionsTextarea.value.trim()) {
+            questionData.options = optionsTextarea.value.trim().split('\n').filter(opt => opt.trim());
+        }
+        
+        // Get skip logic
+        const skipCondition = questionDiv.querySelector('.skip-condition').value;
+        const skipTarget = questionDiv.querySelector('.skip-target').value;
+        const skipAction = questionDiv.querySelector('.skip-action').value;
+        
+        if (skipCondition && (skipTarget || skipAction === 'end')) {
+            questionData.skipLogic = {
+                condition: skipCondition,
+                target: skipTarget,
+                action: skipAction
+            };
+        }
+        
+        questions.push(questionData);
+    });
+    
+    // Disable submit button to prevent double submission
+    const submitButton = this.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+    
+    try {
+        console.log('Saving form:', {
+            title: title,
+            description: description,
+            questions: questions
+        });
+        
+        const response = await fetch('/save_form', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                description: description,
+                questions: questions
+            })
+        });
+        
+        const result = await response.json();
+        console.log('Server response:', result);
+        
+        if (result.success) {
+            window.location.href = '/';
+        } else {
+            alert('Error saving form: ' + (result.error || 'Unknown error'));
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save"></i> Save Form';
+        }
+    } catch (error) {
+        console.error('Error saving form:', error);
+        alert('Error saving form: ' + error.message);
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save"></i> Save Form';
+    }
+});
+
+// Add first question by default
+addQuestion();
+</script>
+{% endblock %}
