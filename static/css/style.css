@@ -1,0 +1,171 @@
+/* General Styles */
+.question-builder {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: #f8f9fa;
+}
+
+/* Star Rating Styles */
+.star-rating {
+    display: flex;
+    gap: 5px;
+}
+
+.star-rating input[type="radio"] {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 24px;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-rating input[type="radio"]:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffc107;
+}
+
+/* Scale Rating Styles */
+.scale-rating {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.scale-rating input[type="radio"] {
+    margin: 0 5px;
+}
+
+/* Skip Logic Styles */
+.skip-logic-section {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Form Builder Styles */
+.question-container {
+    margin-bottom: 1.5rem;
+}
+
+.question-container.is-invalid {
+    border-color: #dc3545;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+
+/* Results Page Styles */
+.progress {
+    height: 20px;
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+}
+
+.progress-bar {
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    line-height: 20px;
+}
+
+/* Chart Styles */
+canvas {
+    max-width: 100%;
+    height: auto !important;
+}
+
+/* Card Styles */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Accordion Styles */
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0c63e4;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+/* Text Colors */
+.text-warning {
+    color: #ffc107 !important;
+}
+
+.text-primary {
+    color: #0d6efd !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Button Styles */
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Form Control Styles */
+.form-control:focus,
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+
+/* Alert Styles */
+.alert {
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.alert-info {
+    background-color: #cff4fc;
+    border-color: #b6effb;
+    color: #055160;
+}
+
+/* Spinner Styles */
+.spinner-border {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    vertical-align: text-bottom;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+} 
